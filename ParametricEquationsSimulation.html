@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Parametric Motion Simulator</title>
+	<style>
+		:root { --ink:#17212b; --muted:#64717d; --line:#d9e1e7; --paper:#f6f8f5; --panel:#fff; --teal:#087f8c; --orange:#e66b3d; --yellow:#f4bd3e; --blue:#2364aa; --shadow:0 14px 40px #18323d12; }
+		* { box-sizing:border-box; }
+		body { margin:0; color:var(--ink); background:linear-gradient(135deg,#edf4f0 0%,#f8f5ed 52%,#e9f0f3 100%); font:15px/1.45 Georgia, 'Times New Roman', serif; }
+		button, input, select { font:inherit; }
+		button { cursor:pointer; }
+		.shell { max-width:1500px; margin:auto; padding:30px clamp(16px,3vw,44px) 52px; }
+		header { display:flex; justify-content:space-between; align-items:end; gap:24px; margin-bottom:24px; }
+		.eyebrow { color:var(--teal); font:700 12px/1.2 'Trebuchet MS',sans-serif; letter-spacing:.16em; text-transform:uppercase; }
+		h1 { margin:5px 0 7px; font-size:clamp(32px,5vw,58px); line-height:.98; letter-spacing:-.035em; font-weight:700; }
+		.dek { max-width:640px; margin:0; color:var(--muted); font-size:17px; }
+		.badge { align-self:start; padding:11px 14px; border:1px solid #bfd4cf; color:var(--teal); background:#f4fbf8; font:700 12px 'Trebuchet MS',sans-serif; text-transform:uppercase; letter-spacing:.08em; }
+		.tabs { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:9px; margin-bottom:18px; }
+		.tab { min-width:0; border:1px solid var(--line); border-radius:5px; padding:13px 12px; color:var(--muted); background:#ffffffa8; font:700 14px 'Trebuchet MS',sans-serif; transition:transform .18s ease, background .18s ease, color .18s ease; }
+		.tab:hover { transform:translateY(-2px); color:var(--ink); background:#fff; }
+		.tab:focus-visible, .transport button:focus-visible, .transport select:focus-visible, .tool select:focus-visible, .tool-actions button:focus-visible, summary:focus-visible { outline:3px solid #f4bd3e; outline-offset:3px; }
+		.tab.active { color:white; border-color:var(--ink); background:var(--ink); }
+		.layout { display:grid; grid-template-columns:minmax(0,1.03fr) minmax(0,1.35fr); gap:18px; align-items:start; }
+		.panel { border:1px solid var(--line); background:var(--panel); box-shadow:var(--shadow); }
+		.scene-panel { padding:14px; }
+		.panel-head { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:2px 4px 12px; }
+		h2, h3 { margin:0; font-weight:700; }
+		h2 { font-size:20px; } h3 { font-size:16px; }
+		.kicker { color:var(--muted); font:12px 'Trebuchet MS',sans-serif; }
+		canvas { display:block; width:100%; }
+		#scene { height:clamp(320px,38vw,420px); border:1px solid #d8e0db; border-radius:4px; background:#eaf3f0; box-shadow:inset 0 0 0 1px #ffffff80; }
+		.state { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; }
+		.state article { padding:13px; background:#f4f7f5; border-top:3px solid var(--teal); }
+		.state label, .metric-label { display:block; color:var(--muted); font:11px 'Trebuchet MS',sans-serif; letter-spacing:.05em; text-transform:uppercase; }
+		.state strong { display:block; margin-top:3px; font-size:25px; line-height:1.1; }
+		.state small { color:var(--muted); font-size:12px; }
+		.equation { margin-top:14px; padding:16px; border-left:4px solid var(--orange); background:#fffaf2; }
+		.equation .formula { margin:5px 0; font-size:20px; }
+		.equation .formula em { font-style:normal; color:var(--orange); }
+		.same-time { color:var(--muted); font-size:14px; }
+		.same-time strong { color:var(--ink); }
+		.control-panel { padding:18px; }
+		.control-panel h2 { margin-bottom:14px; }
+		.controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 18px; padding-bottom:15px; border-bottom:1px solid var(--line); }
+		.control { display:grid; grid-template-columns:1fr auto; gap:4px 10px; align-items:center; }
+		.control label { font-weight:700; }
+		.control output { color:var(--teal); font:700 13px 'Trebuchet MS',sans-serif; }
+		.control input[type=range] { grid-column:1/-1; width:100%; accent-color:var(--teal); }
+		.transport { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:15px 0 5px; }
+		.transport button { border:1px solid var(--line); border-radius:4px; padding:9px 14px; color:var(--ink); background:white; font-weight:700; }
+		.transport button.primary { color:white; border-color:var(--teal); background:var(--teal); }
+		.transport select { border:1px solid var(--line); padding:8px; background:white; }
+		.time-control { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; margin:8px 0 16px; color:var(--muted); font:12px 'Trebuchet MS',sans-serif; }
+		#timeSlider { width:100%; accent-color:var(--orange); }
+		.graphs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+		.graph { min-width:0; padding:12px; border:1px solid var(--line); background:#fcfdfc; }
+		.graph.full { grid-column:1/-1; }
+		.graph h3 { margin-bottom:6px; font-size:15px; }
+		.graph canvas { height:190px; }
+		.graph.full canvas { height:230px; }
+		details { margin-top:16px; border-top:1px solid var(--line); padding-top:13px; }
+		summary { cursor:pointer; color:var(--teal); font-weight:700; }
+		details p { color:var(--muted); max-width:760px; margin-bottom:0; }
+		.note { margin-top:18px; padding:14px 16px; color:#45545e; background:#edf5f4; border-left:3px solid var(--teal); }
+		.learning-tools { margin-top:16px; border-top:1px solid var(--line); padding-top:14px; }
+		.learning-tools h3 { margin-bottom:10px; }
+		.tool-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+		.tool { padding:11px; border:1px solid var(--line); background:#f8faf8; }
+		.tool.wide { grid-column:1/-1; }
+		.tool label, .tool legend { display:block; color:var(--muted); font:700 11px 'Trebuchet MS',sans-serif; letter-spacing:.04em; text-transform:uppercase; }
+		.tool select, .tool input[type=number] { width:100%; margin-top:5px; border:1px solid #c9d5d5; padding:7px; color:var(--ink); background:#fff; }
+		.tool-actions { display:flex; flex-wrap:wrap; gap:7px; margin-top:8px; }
+		.tool-actions button { border:1px solid var(--line); border-radius:4px; padding:7px 10px; color:var(--ink); background:#fff; font-weight:700; }
+		.tool-actions button.primary { color:#fff; border-color:var(--teal); background:var(--teal); }
+		.guided-task { margin:6px 0 8px; color:var(--ink); }
+		.check-row { display:grid; gap:8px; margin-top:8px; }
+		.check-row label { display:flex; align-items:center; gap:7px; color:var(--ink); font:15px Georgia,'Times New Roman',serif; letter-spacing:0; text-transform:none; }
+		.check-row input { accent-color:var(--teal); }
+		@media (max-width:760px) { .tool-grid { grid-template-columns:1fr; } .tool.wide { grid-column:auto; } }
+		.hidden { display:none; }
+		@media (max-width:1080px) {
+			.shell { padding-inline:clamp(18px,4vw,34px); }
+			.layout { grid-template-columns:1fr; }
+			#scene { height:clamp(320px,52vw,420px); }
+		}
+		@media (max-width:760px) {
+			header { display:block; margin-bottom:18px; }
+			.badge { display:inline-block; margin-top:15px; }
+			.tabs { grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+			.tab { padding:11px 8px; font-size:13px; }
+			.tab:last-child { grid-column:span 2; }
+			#scene { height:clamp(260px,68vw,340px); }
+			.panel-head { align-items:flex-start; }
+			.controls, .graphs { grid-template-columns:1fr; }
+			.graph.full { grid-column:auto; }
+			.graph canvas { height:180px; }
+			.graph.full canvas { height:205px; }
+			.control-panel, .scene-panel { padding:12px; }
+			.equation { padding:13px; }
+			.equation .formula { font-size:18px; overflow-wrap:anywhere; }
+			.time-control { grid-template-columns:1fr; gap:4px; }
+		}
+		@media (max-width:430px) {
+			.shell { padding:18px 10px 32px; }
+			h1 { font-size:clamp(34px,11vw,44px); }
+			.dek { font-size:15px; }
+			.state { gap:5px; }
+			.state article { padding:10px 7px; }
+			.state label { font-size:10px; line-height:1.25; }
+			.state strong { font-size:18px; }
+			.state small { font-size:11px; }
+			.transport { gap:6px; }
+			.transport button { padding:9px 10px; }
+		}
+		@media (prefers-reduced-motion: reduce) {
+			*, *::before, *::after { scroll-behavior:auto !important; transition-duration:0.01ms !important; animation-duration:0.01ms !important; animation-iteration-count:1 !important; }
+			.tab:hover { transform:none; }
+		}
+	</style>
+</head>
+<body>
+	<main class="shell">
+		<header>
+			<div><div class="eyebrow">A-level mathematics / motion lab</div><h1>Parametric Motion<br>Simulator</h1><p class="dek">See how <strong>x(t)</strong> and <strong>y(t)</strong> combine to create motion. Both coordinates use the same parameter <em>t</em>.</p></div>
+			<div class="badge">One parameter · three views</div>
+		</header>
+		<nav class="tabs" aria-label="Simulation mode"><button class="tab active" data-mode="car">Car / road</button><button class="tab" data-mode="projectile">Projectile</button><button class="tab" data-mode="rocket">Rocket launch</button><button class="tab" data-mode="orbit">Satellite orbit</button><button class="tab" data-mode="coaster">Roller coaster</button></nav>
+		<section class="layout">
+			<div>
+				<section class="panel scene-panel"><div class="panel-head"><div><h2 id="sceneTitle">Car travelling along a road</h2><span class="kicker" id="sceneKicker">The equations define the road itself</span></div><span class="kicker" id="interval">0 ≤ t ≤ 10.0 s</span></div><canvas id="scene" aria-label="Animated physical scene"></canvas>
+					<div class="state"><article><label>Time · parameter</label><strong id="timeValue">0.00 s</strong><small>the shared moment</small></article><article><label>Horizontal position</label><strong id="xValue">0.00 m</strong><small>x(t)</small></article><article><label>Vertical position</label><strong id="yValue">0.00 m</strong><small>y(t)</small></article></div>
+					  <div class="equation"><div class="eyebrow">The same t controls both coordinates</div><div class="formula" id="formulaX"></div><div class="formula" id="formulaY"></div><p class="same-time" id="velocityText"></p><p class="same-time" id="positionText"></p></div>
+				</section>
+				<div class="note" id="microNote">At this instant, x(t) determines the horizontal coordinate. At this same instant, y(t) determines the vertical coordinate.</div>
+			</div>
+			<div class="panel control-panel"><h2>Experiment with the model</h2><div class="controls" id="controls"></div>
+				<div class="transport"><button class="primary" id="play">▶ Play</button><button id="reset">↺ Reset</button><button id="step">Step +</button><label class="kicker" for="speed">Animation speed</label><select id="speed" aria-label="Animation speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></div>
+				<div class="time-control"><span id="timeStart">t = 0.00 s</span><input id="timeSlider" type="range" min="0" max="10" step="0.01" value="0" aria-label="Time parameter"><span id="timeMax">10.00 s</span></div>
+				<section class="learning-tools" aria-labelledby="learningTitle"><h3 id="learningTitle">Learning tools</h3><div class="tool-grid">
+					<div class="tool"><label for="preset">Preset for this mode</label><select id="preset" aria-label="Preset for this mode"></select></div>
+					<div class="tool"><label>Guided task</label><p class="guided-task" id="guidedTask"></p></div>
+					<div class="tool wide"><div class="check-row"><label><input id="showGuides" type="checkbox" checked> Show coordinate guides</label><label><input id="showTrail" type="checkbox"> Show travelled trail</label><label><input id="showVelocity" type="checkbox"> Show derivatives / velocity vector</label></div><div class="tool-actions"><button id="clearTrail">Clear trail</button></div></div>
+				</div></section>
+				<div class="graphs"><div class="graph"><h3>x(t) — Horizontal position vs time</h3><canvas id="xGraph" aria-label="Horizontal position against time graph"></canvas></div><div class="graph"><h3>y(t) — Vertical position vs time</h3><canvas id="yGraph" aria-label="Vertical position against time graph"></canvas></div><div class="graph full"><h3>(x,y) — Actual path of the object</h3><canvas id="pathGraph" aria-label="Coordinate path graph"></canvas></div></div>
+				<details><summary>Where did the x-y path come from?</summary><p>The parametric equations generate a pair <strong>(x(t), y(t))</strong> for every value of t. Plotting all those pairs creates the actual geometric path. Eliminating t can give a Cartesian relationship such as <strong>y = ax² + bx + c</strong>, but that path no longer tells us when the object reaches each point. The parametric view keeps the timing.</p></details>
+			</div>
+		</section>
+	</main>
+	<script>
+		'use strict';
+		function boundedTrail() { const points=[]; points.push=function(...items){Array.prototype.push.apply(this,items);if(this.length>600)this.splice(0,this.length-600);return this.length;}; return points; }
+		const state = { mode:'car', t:0, playing:false, playbackRate:1, trail:boundedTrail(), hover:null, showGuides:true, showTrail:false, showVelocity:false, params:{ amplitude:2, frequency:.8, speed:8, v0:25, angle:45, height:2, gravity:9.81, launchSpeed:4, launchAngle:78, thrust:24, rocketGravity:9.81, burn:2, orbitRadius:12, orbitPeriod:8, phase:0, coasterAmplitude:3, coasterFrequency:.55, coasterSpeed:10 } };
+		const $ = id => document.getElementById(id);
+		const scene = $('scene'), sceneCtx = scene.getContext('2d');
+		const graphCanvases = { x:$('xGraph'), y:$('yGraph'), path:$('pathGraph') };
+		const definitions = {
+			car: { title:'Car travelling along a road', kicker:'The equations define the road itself', note:'The road is not separately controlling the car. The parametric equations define its path, and the car is placed at (x(t), y(t)).', controls:[['amplitude','Road amplitude A','m',.5,4,.1],['frequency','Road frequency k','rad/m',.2,1.5,.1],['speed','Car horizontal speed v','m/s',3,14,.5]] },
+			projectile: { title:'Ball undergoing projectile motion', kicker:'Ideal motion under constant gravity', note:'Changing t moves the point along the parabola. The path shows where the ball goes; the parameter tells us when it is there.', controls:[['v0','Initial speed v₀','m/s',10,40,1],['angle','Launch angle θ','°',15,75,1],['height','Initial height y₀','m',0,10,.5],['gravity','Gravity g','m/s²',1,15,.01]] },
+			rocket: { title:'Rocket launch', kicker:'Powered ascent, then ballistic coast', note:'During the burn, thrust accelerates the rocket. After the engines cut off, gravity shapes the coast. Both phases are still one parametric journey.', controls:[['launchSpeed','Initial speed v₀','m/s',1,12,.5],['launchAngle','Launch angle θ','°',55,88,1],['thrust','Thrust acceleration a','m/s²',12,36,1],['burn','Engine burn time','s',1,4,.1],['rocketGravity','Gravity g','m/s²',3,15,.01]] },
+			orbit: { title:'Circular satellite orbit', kicker:'A repeating path with a precise period', note:'The satellite keeps its distance from the planet while t moves it around the circle. The path shows shape; the period shows timing.', controls:[['orbitRadius','Orbit radius R','km',6,20,1],['orbitPeriod','Orbital period T','s',4,14,.5],['phase','Starting phase φ','°',0,360,5]] },
+			coaster: { title:'Roller-coaster track', kicker:'Horizontal progress meets changing height', note:'The cart moves forward while its height rises and falls. The sinusoidal track is the path, and t tells us when the cart reaches each hill.', controls:[['coasterAmplitude','Hill amplitude A','m',1,5,.1],['coasterFrequency','Hill frequency k','rad/m',.25,1,.05],['coasterSpeed','Cart speed v','m/s',5,16,.5]] }
+		};
+		const presets = {
+			car:[['Gentle road',{amplitude:1.2,frequency:.45,speed:6}],['Wavy road',{amplitude:3,frequency:1,speed:10}]],
+			projectile:[['Low launch',{v0:20,angle:30,height:1,gravity:9.81}],['High arc',{v0:30,angle:65,height:4,gravity:9.81}]],
+			rocket:[['Short burn',{launchSpeed:3,launchAngle:70,thrust:18,burn:1.5,rocketGravity:9.81}],['Powerful launch',{launchSpeed:5,launchAngle:82,thrust:32,burn:3,rocketGravity:9.81}]],
+			orbit:[['Tight orbit',{orbitRadius:8,orbitPeriod:6,phase:0}],['Wide orbit',{orbitRadius:18,orbitPeriod:12,phase:90}]],
+			coaster:[['Small hills',{coasterAmplitude:1.5,coasterFrequency:.35,coasterSpeed:8}],['Big hills',{coasterAmplitude:4,coasterFrequency:.8,coasterSpeed:12}]]
+		};
+		const guidedTasks = { car:'Compare the road height at two times. What changes when you increase the horizontal speed?', projectile:'Pause near the top of the path and inspect the vertical derivative.', rocket:'Find the instant the rocket changes from powered burn to ballistic coast.', orbit:'Use the guides to compare the satellite distance from the origin at different times.', coaster:'Find a hilltop where the vertical derivative is close to zero.' };
+		function model() {
+			const p=state.params;
+			if (state.mode==='car') return { duration:10, position:t=>({x:p.speed*t,y:p.amplitude*Math.sin(p.frequency*t)}), derivative:t=>({x:p.speed,y:p.amplitude*p.frequency*Math.cos(p.frequency*t)}), labels:[`x(t) = ${fmt(p.speed)}t`,`y(t) = ${fmt(p.amplitude)} sin(${fmt(p.frequency)}t)`] };
+			if (state.mode==='projectile') { const angle=p.angle*Math.PI/180,vx=p.v0*Math.cos(angle),vy=p.v0*Math.sin(angle),duration=(vy+Math.sqrt(vy*vy+2*p.gravity*p.height))/p.gravity; return { duration, position:t=>({x:vx*t,y:p.height+vy*t-.5*p.gravity*t*t}), derivative:t=>({x:vx,y:vy-p.gravity*t}), labels:[`x(t) = ${fmt(vx)}t`,`y(t) = ${fmt(p.height)} + ${fmt(vy)}t − ½(${fmt(p.gravity)})t²`] }; }
+			if (state.mode==='rocket') { const angle=p.launchAngle*Math.PI/180,ax=p.thrust*Math.cos(angle),ay=p.thrust*Math.sin(angle)-p.rocketGravity,vx0=p.launchSpeed*Math.cos(angle),vy0=p.launchSpeed*Math.sin(angle),burnX=vx0*p.burn+.5*ax*p.burn*p.burn,burnY=vy0*p.burn+.5*ay*p.burn*p.burn,burnVx=vx0+ax*p.burn,burnVy=vy0+ay*p.burn,coastTime=(burnVy+Math.sqrt(burnVy*burnVy+2*p.rocketGravity*Math.max(0,burnY)))/p.rocketGravity,duration=p.burn+coastTime; return { duration, burn:p.burn, position:t=>t<=p.burn?({x:vx0*t+.5*ax*t*t,y:vy0*t+.5*ay*t*t}):({x:burnX+burnVx*(t-p.burn),y:burnY+burnVy*(t-p.burn)-.5*p.rocketGravity*(t-p.burn)*(t-p.burn)}), derivative:t=>t<=p.burn?({x:vx0+ax*t,y:vy0+ay*t}):({x:burnVx,y:burnVy-p.rocketGravity*(t-p.burn)}), labels:[`x(t) = v₀ cos(θ)t + ½a cos(θ)t²`,`y(t) = v₀ sin(θ)t + ½(a sin(θ) − g)t²`] }; }
+			if (state.mode==='orbit') { const omega=2*Math.PI/p.orbitPeriod,phase=p.phase*Math.PI/180; return { duration:p.orbitPeriod*1.25, position:t=>({x:p.orbitRadius*Math.cos(omega*t+phase),y:p.orbitRadius*Math.sin(omega*t+phase)}), derivative:t=>({x:-p.orbitRadius*omega*Math.sin(omega*t+phase),y:p.orbitRadius*omega*Math.cos(omega*t+phase)}), labels:[`x(t) = ${fmt(p.orbitRadius)} cos(${fmt(omega)}t + φ)`,`y(t) = ${fmt(p.orbitRadius)} sin(${fmt(omega)}t + φ)`] }; }
+			return { duration:10, position:t=>({x:p.coasterSpeed*t,y:p.coasterAmplitude*Math.sin(p.coasterFrequency*t)}), derivative:t=>({x:p.coasterSpeed,y:p.coasterAmplitude*p.coasterFrequency*Math.cos(p.coasterFrequency*t)}), labels:[`x(t) = ${fmt(p.coasterSpeed)}t`,`y(t) = ${fmt(p.coasterAmplitude)} sin(${fmt(p.coasterFrequency)}t)`] };
+		}
+		function fmt(n) { const value=Number(n); return (Math.abs(value)<0.005?0:value).toFixed(2); }
+		function finite(value) { return Number.isFinite(Number(value)); }
+		function clampTime(value,m) { const duration=finite(m.duration)&&m.duration>0?m.duration:10; return Math.max(0,Math.min(duration,finite(value)?Number(value):0)); }
+		function applyPreset(index) { const preset=presets[state.mode][Number(index)]; if(!preset) return; Object.assign(state.params,preset[1]); state.t=0; state.trail=boundedTrail(); configureControls(); render(); }
+		function updatePresetOptions() { const select=$('preset'); if(!select) return; select.innerHTML=presets[state.mode].map((item,index)=>`<option value="${index}">${item[0]}</option>`).join(''); }
+		function configureControls() {
+			const d=definitions[state.mode]; $('controls').innerHTML=d.controls.map(([id,label,unit,min,max,step])=>`<div class="control"><label for="${id}">${label}</label><output id="${id}Out"></output><input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${state.params[id]}" aria-label="${label}"><span class="kicker">${unit}</span></div>`).join('');
+			updatePresetOptions(); $('guidedTask').textContent=guidedTasks[state.mode]; d.controls.forEach(([id])=>$(id).addEventListener('input',()=>{const value=Number($(id).value);if(!finite(value))return;state.params[id]=value;state.t=clampTime(state.t,model());render();}));
+		}
+		function resizeCanvas(canvas, height) { if(!canvas||typeof canvas.getBoundingClientRect!=='function') return {ctx:null,w:1,h:height||1}; const ratio=finite(window.devicePixelRatio)&&window.devicePixelRatio>0?window.devicePixelRatio:1, rect=canvas.getBoundingClientRect(),w=Math.max(1,rect.width),h=Math.max(1,height||rect.height||1); canvas.width=Math.max(1,w*ratio); canvas.height=Math.max(1,h*ratio); const ctx=canvas.getContext('2d'); if(ctx)ctx.setTransform(ratio,0,0,ratio,0,0); return {ctx,w,h}; }
+		function bounds(values, pad=.12) { let lo=Math.min(...values), hi=Math.max(...values); if (lo===hi) {lo-=1;hi+=1;} const extra=(hi-lo)*pad; return [lo-extra,hi+extra]; }
+		function mapPoint(x,y,b,w,h,pad) { return { x:pad+(x-b.x[0])/(b.x[1]-b.x[0])*(w-2*pad), y:h-pad-(y-b.y[0])/(b.y[1]-b.y[0])*(h-2*pad) }; }
+		function graph(canvas, kind, data, current, labels) {
+			const {ctx,w,h}=resizeCanvas(canvas,kind==='path'?230:190), pad=38; ctx.clearRect(0,0,w,h); const xs=data.map(d=>d.x), ys=data.map(d=>d.y); let b={x:bounds(xs),y:bounds(ys)}; if(kind==='path'&&state.mode==='orbit'){const limit=Math.max(Math.abs(b.x[0]),Math.abs(b.x[1]),Math.abs(b.y[0]),Math.abs(b.y[1]));b={x:[-limit,limit],y:[-limit,limit]};}
+			ctx.fillStyle='#fcfdfc';ctx.fillRect(0,0,w,h); ctx.strokeStyle='#e5ece9';ctx.lineWidth=1; ctx.font='11px Trebuchet MS, sans-serif'; ctx.fillStyle='#71808a';
+			for(let i=0;i<=4;i++){ const xv=b.x[0]+(b.x[1]-b.x[0])*i/4, yv=b.y[0]+(b.y[1]-b.y[0])*i/4, px=mapPoint(xv,b.y[0],b,w,h,pad).x, py=mapPoint(b.x[0],yv,b,w,h,pad).y; ctx.beginPath();ctx.moveTo(px,pad);ctx.lineTo(px,h-pad);ctx.stroke();ctx.beginPath();ctx.moveTo(pad,py);ctx.lineTo(w-pad,py);ctx.stroke();ctx.fillText(fmt(xv),px-10,h-13);ctx.fillText(fmt(yv),4,py+4); }
+			ctx.strokeStyle='#82929a';ctx.beginPath();ctx.moveTo(pad,pad);ctx.lineTo(pad,h-pad);ctx.lineTo(w-pad,h-pad);ctx.stroke(); ctx.fillStyle='#34444d';ctx.fillText(labels[0],w/2-5,h-1); ctx.save();ctx.translate(12,h/2);ctx.rotate(-Math.PI/2);ctx.fillText(labels[1],0,0);ctx.restore();
+			ctx.strokeStyle=state.mode==='car'?'#e66b3d':'#2364aa';ctx.lineWidth=2.5;ctx.beginPath(); data.forEach((d,i)=>{const q=mapPoint(d.x,d.y,b,w,h,pad);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);});ctx.stroke();
+			const q=mapPoint(current.x,current.y,b,w,h,pad); if(kind!=='path'){ctx.setLineDash([4,4]);ctx.strokeStyle='#e66b3d';ctx.beginPath();ctx.moveTo(q.x,pad);ctx.lineTo(q.x,h-pad);ctx.stroke();ctx.setLineDash([]);} ctx.fillStyle='#f4bd3e';ctx.strokeStyle='#17212b';ctx.lineWidth=2;ctx.beginPath();ctx.arc(q.x,q.y,6,0,Math.PI*2);ctx.fill();ctx.stroke();
+			canvas.__graphInfo={b,pad,w,h,data}; if(kind==='path'&&state.hover){const hoverPoint=mapPoint(state.hover.x,state.hover.y,b,w,h,pad);ctx.strokeStyle='#087f8c';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(hoverPoint.x,pad);ctx.lineTo(hoverPoint.x,h-pad);ctx.moveTo(pad,hoverPoint.y);ctx.lineTo(w-pad,hoverPoint.y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#17212b';ctx.fillRect(Math.min(hoverPoint.x+8,w-130),Math.max(hoverPoint.y-35,8),122,28);ctx.fillStyle='#fff';ctx.font='11px Trebuchet MS, sans-serif';ctx.fillText(`t ${fmt(state.hover.t)} · x ${fmt(state.hover.x)} · y ${fmt(state.hover.y)}`,Math.min(hoverPoint.x+13,w-125),Math.max(hoverPoint.y-18,25));}
+		}
+		const baseGraph=graph;
+		graph=function(...args) { const canvas=args[0]; if(!canvas||typeof canvas.getContext!=='function'||!canvas.getContext('2d'))return; baseGraph(...args); };
+		function roundedBox(ctx,x,y,width,height,radius) { ctx.beginPath(); ctx.moveTo(x+radius,y); ctx.arcTo(x+width,y,x+width,y+height,radius); ctx.arcTo(x+width,y+height,x,y+height,radius); ctx.arcTo(x,y+height,x,y,radius); ctx.arcTo(x,y,x+width,y,radius); ctx.closePath(); }
+		function cloud(ctx,x,y,scale) { ctx.save();ctx.translate(x,y);ctx.shadowColor='#42727c22';ctx.shadowBlur=8;ctx.shadowOffsetY=4;const cloudFill=ctx.createLinearGradient(0,-20,0,25);cloudFill.addColorStop(0,'#ffffff');cloudFill.addColorStop(1,'#d8edf0');ctx.fillStyle=cloudFill;ctx.beginPath();ctx.arc(0,8,16*scale,0,Math.PI*2);ctx.arc(20,0,22*scale,0,Math.PI*2);ctx.arc(47,9,15*scale,0,Math.PI*2);ctx.rect(0,8,47,16);ctx.fill();ctx.restore(); }
+		function drawCartoonCar(ctx,angle) { ctx.save();ctx.rotate(angle);ctx.shadowColor='#13232b55';ctx.shadowBlur=8;ctx.shadowOffsetY=7;const body=ctx.createLinearGradient(0,-16,0,14);body.addColorStop(0,'#ff9a63');body.addColorStop(.42,'#e66b3d');body.addColorStop(1,'#b94730');ctx.fillStyle=body;ctx.strokeStyle='#17212b';ctx.lineWidth=2;roundedBox(ctx,-32,-14,64,25,7);ctx.fill();ctx.stroke();ctx.shadowColor='transparent';ctx.fillStyle='#c9482f';ctx.beginPath();ctx.moveTo(-19,-14);ctx.lineTo(-10,-28);ctx.lineTo(14,-28);ctx.lineTo(25,-14);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle='#bce9e9';ctx.beginPath();ctx.moveTo(-8,-25);ctx.lineTo(0,-25);ctx.lineTo(0,-16);ctx.lineTo(-15,-16);ctx.closePath();ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(3,-25);ctx.lineTo(13,-24);ctx.lineTo(21,-16);ctx.lineTo(3,-16);ctx.closePath();ctx.fill();ctx.stroke();ctx.strokeStyle='#ffffff70';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-26,-9);ctx.lineTo(19,-9);ctx.stroke();ctx.fillStyle='#f8d368';ctx.beginPath();ctx.arc(28,-4,3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#bd382d';ctx.beginPath();ctx.arc(-29,-4,3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#17212b';[-19,19].forEach(x=>{ctx.beginPath();ctx.arc(x,13,8,0,Math.PI*2);ctx.fill();ctx.fillStyle='#b7c3c5';ctx.beginPath();ctx.arc(x,13,3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#17212b';});ctx.restore(); }
+		function drawCartoonBall(ctx) { const ball=ctx.createRadialGradient(-5,-7,2,3,3,15);ball.addColorStop(0,'#f7fbff');ball.addColorStop(.18,'#7cc9e7');ball.addColorStop(1,'#2364aa');ctx.fillStyle=ball;ctx.strokeStyle='#153f70';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,12,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.strokeStyle='#ffffff90';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(-1,0,7,Math.PI*.15,Math.PI*1.2);ctx.stroke(); }
+		function drawRocket(ctx,angle,burning) { ctx.save();ctx.rotate(angle+Math.PI/2);if(burning){const flame=ctx.createLinearGradient(0,23,0,58);flame.addColorStop(0,'#fff9c4');flame.addColorStop(.35,'#f4bd3e');flame.addColorStop(1,'#e66b3d00');ctx.fillStyle=flame;ctx.beginPath();ctx.moveTo(-8,21);ctx.quadraticCurveTo(-4,43,0,58);ctx.quadraticCurveTo(4,43,8,21);ctx.closePath();ctx.fill();ctx.fillStyle='#fff8bd';ctx.beginPath();ctx.moveTo(-3,22);ctx.quadraticCurveTo(0,40,3,22);ctx.closePath();ctx.fill();}ctx.shadowColor='#13232b55';ctx.shadowBlur=10;ctx.shadowOffsetY=5;const shell=ctx.createLinearGradient(-13,0,13,0);shell.addColorStop(0,'#9aaeb5');shell.addColorStop(.45,'#f7fbfb');shell.addColorStop(1,'#b9cbd0');ctx.fillStyle=shell;ctx.strokeStyle='#17212b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-13,16);ctx.lineTo(-13,-17);ctx.quadraticCurveTo(-13,-31,0,-39);ctx.quadraticCurveTo(13,-31,13,-17);ctx.lineTo(13,16);ctx.closePath();ctx.fill();ctx.stroke();ctx.shadowColor='transparent';ctx.fillStyle='#e66b3d';ctx.beginPath();ctx.moveTo(-13,5);ctx.lineTo(-24,25);ctx.lineTo(-12,20);ctx.closePath();ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(13,5);ctx.lineTo(24,25);ctx.lineTo(12,20);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle='#2364aa';ctx.beginPath();ctx.arc(0,-17,6,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.strokeStyle='#ffffffb8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-7,-31);ctx.lineTo(-7,8);ctx.stroke();ctx.restore(); }
+		function drawSatellite(ctx,angle) { ctx.save();ctx.rotate(angle);ctx.fillStyle='#dce5e7';ctx.strokeStyle='#17212b';ctx.lineWidth=2;roundedBox(ctx,-13,-9,26,18,3);ctx.fill();ctx.stroke();const panel=ctx.createLinearGradient(0,-8,0,8);panel.addColorStop(0,'#61a9d2');panel.addColorStop(1,'#173d7d');ctx.fillStyle=panel;ctx.fillRect(-37,-8,20,16);ctx.fillRect(17,-8,20,16);ctx.strokeRect(-37,-8,20,16);ctx.strokeRect(17,-8,20,16);ctx.strokeStyle='#f4bd3e';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-27,-8);ctx.lineTo(-27,8);ctx.moveTo(27,-8);ctx.lineTo(27,8);ctx.stroke();ctx.strokeStyle='#17212b';ctx.beginPath();ctx.moveTo(0,9);ctx.lineTo(0,24);ctx.stroke();ctx.beginPath();ctx.arc(0,27,4,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#f4bd3e';ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fill();ctx.restore(); }
+		function drawLearningOverlays(ctx,m,current,b,point,w,h) {
+			if(state.showTrail&&state.trail.length>1){ctx.strokeStyle='#087f8c99';ctx.lineWidth=3;ctx.beginPath();state.trail.forEach((p,i)=>{const q=mapPoint(p.x,p.y,b,w,h,35);i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y);});ctx.stroke();}
+			if(state.showGuides){ctx.strokeStyle='#087f8c99';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(point.x,35);ctx.lineTo(point.x,h-35);ctx.moveTo(35,point.y);ctx.lineTo(w-35,point.y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#17212b';ctx.font='11px Trebuchet MS, sans-serif';ctx.fillText(`x = ${fmt(current.x)}`,Math.min(point.x+6,w-70),h-40);ctx.fillText(`y = ${fmt(current.y)}`,40,Math.max(point.y-6,16));}
+			if(state.showVelocity){const d=m.derivative(state.t),scale=Math.max(1,Math.min(3,Math.min(w,h)/Math.max(1,Math.hypot(d.x,d.y)*3))),tip={x:point.x+d.x*scale,y:point.y-d.y*scale};ctx.strokeStyle='#e66b3d';ctx.fillStyle='#e66b3d';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(point.x,point.y);ctx.lineTo(tip.x,tip.y);ctx.stroke();ctx.beginPath();ctx.arc(tip.x,tip.y,4,0,Math.PI*2);ctx.fill();}
+			ctx.fillStyle=state.mode==='orbit'?'#ffffff':'#17212b';ctx.font='700 11px Trebuchet MS, sans-serif';if(state.mode==='rocket'){const burnPoint=mapPoint(m.position(m.burn).x,m.position(m.burn).y,b,w,h,35);ctx.strokeStyle='#f4bd3e';ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(burnPoint.x,35);ctx.lineTo(burnPoint.x,h-35);ctx.stroke();ctx.setLineDash([]);ctx.fillText('engine cutoff',Math.min(burnPoint.x+5,w-85),48);}if(state.mode==='coaster'){[.25,.5,.75].forEach(fraction=>{const marker=m.position(m.duration*fraction),markerPoint=mapPoint(marker.x,marker.y,b,w,h,35);ctx.strokeStyle='#e66b3d99';ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(35,markerPoint.y);ctx.lineTo(Math.min(markerPoint.x+48,w-35),markerPoint.y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#17212b';ctx.fillText(`h ${fmt(marker.y)} m`,Math.min(markerPoint.x+6,w-70),Math.max(markerPoint.y-7,58));});}
+		}
+		function drawScene(m, current) {
+			const sceneHeight=scene.getBoundingClientRect().height||420,{ctx,w,h}=resizeCanvas(scene,sceneHeight);if(!ctx)return;ctx.clearRect(0,0,w,h);const pts=[];for(let i=0;i<=160;i++)pts.push(m.position(m.duration*i/160));let xb=bounds(pts.map(p=>p.x),.08),yb=state.mode==='car'||state.mode==='coaster'?[-4.2,4.2]:[-1.5,Math.max(...pts.map(p=>p.y))*1.15+1];if(state.mode==='orbit'){const limit=Math.max(...pts.map(p=>Math.max(Math.abs(p.x),Math.abs(p.y))))+2;xb=[-limit,limit];yb=[-limit,limit];}const b={x:xb,y:yb},point=mapPoint(current.x,current.y,b,w,h,35),path=pts.map(p=>mapPoint(p.x,p.y,b,w,h,35));
+			const sky=ctx.createLinearGradient(0,0,0,h);if(state.mode==='car'){sky.addColorStop(0,'#bfe7e5');sky.addColorStop(1,'#eef4df');}else{sky.addColorStop(0,'#8ec9ec');sky.addColorStop(1,'#e6f3f5');}ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);cloud(ctx,w*.18,62,1);cloud(ctx,w*.72,105,.75);
+			if(state.mode==='car'||state.mode==='coaster'){ctx.fillStyle='#6f9c9b';ctx.beginPath();ctx.moveTo(0,h-135);ctx.lineTo(w*.18,h-205);ctx.lineTo(w*.32,h-140);ctx.lineTo(w*.52,h-220);ctx.lineTo(w*.72,h-145);ctx.lineTo(w*.88,h-190);ctx.lineTo(w,h-135);ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();ctx.fill();ctx.fillStyle='#9bcba1';ctx.fillRect(0,h-58,w,58);ctx.fillStyle='#719a78';for(let x=15;x<w;x+=78){ctx.beginPath();ctx.arc(x,h-61,25,Math.PI,Math.PI*2);ctx.fill();}ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#34484e';ctx.lineWidth=66;ctx.beginPath();path.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.stroke();ctx.strokeStyle=state.mode==='coaster'?'#b77b46':'#65767a';ctx.lineWidth=state.mode==='coaster'?9:56;ctx.stroke();if(state.mode==='coaster'){ctx.strokeStyle='#e8c3a0';ctx.lineWidth=4;ctx.beginPath();path.forEach((q,i)=>i?ctx.lineTo(q.x,q.y-12):ctx.moveTo(q.x,q.y-12));ctx.stroke();ctx.strokeStyle='#65767a';ctx.lineWidth=3;for(let i=0;i<path.length;i+=18){ctx.beginPath();ctx.moveTo(path[i].x,path[i].y-4);ctx.lineTo(path[i].x,path[i].y-46);ctx.stroke();}}else{ctx.strokeStyle='#f8d56f';ctx.lineWidth=3;ctx.setLineDash([20,18]);ctx.beginPath();path.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.stroke();ctx.setLineDash([]);for(let i=0;i<6;i++){const q=path[i*32];ctx.fillStyle='#f2f5e8';ctx.fillRect(q.x-3,q.y-42,6,18);}}}
+			else if(state.mode==='orbit'){ctx.fillStyle='#182d4a';ctx.fillRect(0,0,w,h);for(let i=0;i<28;i++){const sx=(i*83+41)%w,sy=(i*47+17)%h;ctx.fillStyle=i%4===0?'#f4bd3e':'#ffffffb8';ctx.fillRect(sx,sy,i%4===0?2:1,i%4===0?2:1);}const centre=mapPoint(0,0,b,w,h,35),planet=ctx.createRadialGradient(centre.x-18,centre.y-22,4,centre.x,centre.y,Math.min(w,h)*.2);planet.addColorStop(0,'#8ed5eb');planet.addColorStop(.55,'#2364aa');planet.addColorStop(1,'#102f64');ctx.fillStyle=planet;ctx.beginPath();ctx.arc(centre.x,centre.y,Math.min(w,h)*.19,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#7cc9e7';ctx.lineWidth=2;ctx.beginPath();ctx.arc(centre.x,centre.y,Math.min(w,h)*.19,0,Math.PI*2);ctx.stroke();const orbitEdge=mapPoint(state.params.orbitRadius,0,b,w,h,35),orbitTop=mapPoint(0,state.params.orbitRadius,b,w,h,35);ctx.strokeStyle='#ffffff55';ctx.lineWidth=2;ctx.setLineDash([6,8]);ctx.beginPath();ctx.ellipse(centre.x,centre.y,Math.abs(orbitEdge.x-centre.x),Math.abs(orbitTop.y-centre.y),0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
+			else {const sun=ctx.createRadialGradient(w*.82,55,4,w*.82,55,38);sun.addColorStop(0,'#fff8bd');sun.addColorStop(1,'#f4bd3e00');ctx.fillStyle=sun;ctx.beginPath();ctx.arc(w*.82,55,38,0,Math.PI*2);ctx.fill();const ground=mapPoint(0,0,b,w,h,35).y;ctx.fillStyle='#98c98e';ctx.fillRect(0,ground,w,h-ground);ctx.strokeStyle='#62866e';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(0,ground);ctx.lineTo(w,ground);ctx.stroke();ctx.strokeStyle='#ffffff80';ctx.lineWidth=2;for(let x=0;x<w;x+=24){ctx.beginPath();ctx.moveTo(x,ground+8);ctx.lineTo(x+8,ground+2);ctx.stroke();}const launch=mapPoint(0,0,b,w,h,35);ctx.fillStyle='#425866';roundedBox(ctx,launch.x-14,ground-48,28,48,3);ctx.fill();ctx.fillStyle='#273b46';ctx.fillRect(launch.x-23,ground-5,46,6);ctx.strokeStyle='#e66b3d';ctx.lineWidth=3;ctx.setLineDash([5,8]);ctx.beginPath();path.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.stroke();ctx.setLineDash([]);}
+			drawLearningOverlays(ctx,m,current,b,point,w,h);if(state.mode==='rocket'){ctx.fillStyle='#e66b3d';ctx.beginPath();ctx.arc(mapPoint(0,0,b,w,h,35).x,mapPoint(0,0,b,w,h,35).y,5,0,Math.PI*2);ctx.fill();}
+			ctx.save();ctx.translate(point.x,point.y);const d=m.derivative(state.t),angle=Math.atan2(-d.y,d.x);if(state.mode==='car')drawCartoonCar(ctx,angle);else if(state.mode==='coaster'){ctx.scale(.78,.78);drawCartoonCar(ctx,angle);}else if(state.mode==='rocket')drawRocket(ctx,angle,state.t<=m.burn);else if(state.mode==='orbit')drawSatellite(ctx,angle);else drawCartoonBall(ctx);ctx.restore();ctx.fillStyle=state.mode==='orbit'?'#ffffff':'#17212b';ctx.font='700 13px Trebuchet MS, sans-serif';ctx.fillText(`t = ${fmt(state.t)} s`,Math.min(point.x+18,w-100),Math.max(point.y-24,22));
+		}
+		function scenePhase() { return window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:state.playing?performance.now()/1000:state.t; }
+		function drawSceneDetails(ctx,m,current,b,point,path,w,h) {
+			const phase=scenePhase(), ground=mapPoint(0,0,b,w,h,35).y;
+			ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+			if(state.mode==='car') {
+				ctx.strokeStyle='#ffffffb8';ctx.lineWidth=3;ctx.setLineDash([28,20]);ctx.beginPath();ctx.moveTo(0,ground);ctx.lineTo(w,ground);ctx.stroke();ctx.setLineDash([]);
+				ctx.strokeStyle='#52656a';ctx.lineWidth=2;for(let i=0;i<7;i++){const x=(i/6)*w;ctx.beginPath();ctx.moveTo(x,h-30);ctx.lineTo(x+w*.045,h-72);ctx.stroke();}ctx.fillStyle='#52656a';ctx.font='700 11px Trebuchet MS, sans-serif';ctx.fillText('ROAD HEIGHT y(t)',18,Math.max(ground-18,32));
+			} else if(state.mode==='projectile') {
+				ctx.strokeStyle='#b7d19a';ctx.lineWidth=1;for(let x=0;x<w;x+=30){ctx.beginPath();ctx.moveTo(x,ground);ctx.lineTo(x+18,ground+18);ctx.stroke();}ctx.strokeStyle='#456c59';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(18,ground);ctx.lineTo(18,ground-58);ctx.lineTo(7,ground-43);ctx.moveTo(18,ground-47);ctx.lineTo(38,ground-61);ctx.stroke();ctx.fillStyle='#ffffffd9';ctx.font='700 11px Trebuchet MS, sans-serif';ctx.fillText('launch',28,ground-65);
+			} else if(state.mode==='rocket') {
+				const launch=mapPoint(0,0,b,w,h,35), burning=state.t<=m.burn;ctx.fillStyle='#425866';ctx.fillRect(launch.x-28,ground-6,56,6);ctx.strokeStyle='#30454f';ctx.lineWidth=3;for(let x=launch.x-22;x<=launch.x+22;x+=11){ctx.beginPath();ctx.moveTo(x,ground-6);ctx.lineTo(x+8,ground+8);ctx.stroke();}if(burning){ctx.fillStyle='#ffffff70';for(let i=0;i<5;i++){const drift=Math.sin(phase*2+i)*8, sx=launch.x-18+i*9+drift, sy=ground-18-(phase*18+i*13)%42;ctx.beginPath();ctx.arc(sx,sy,5+i%3*2,0,Math.PI*2);ctx.fill();}}ctx.fillStyle='#30454f';ctx.font='700 11px Trebuchet MS, sans-serif';ctx.fillText(burning?'POWERED ASCENT':'BALLISTIC COAST',18,26);
+			} else if(state.mode==='orbit') {
+				const centre=mapPoint(0,0,b,w,h,35), radius=Math.min(w,h)*.19;ctx.strokeStyle='#ffffff22';ctx.lineWidth=1;for(let i=1;i<4;i++){ctx.beginPath();ctx.arc(centre.x,centre.y,radius+i*18,0,Math.PI*2);ctx.stroke();}ctx.strokeStyle='#7cc9e788';ctx.setLineDash([2,7]);ctx.beginPath();ctx.moveTo(centre.x,35);ctx.lineTo(centre.x,h-35);ctx.moveTo(35,centre.y);ctx.lineTo(w-35,centre.y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#ffffffb8';ctx.font='700 11px Trebuchet MS, sans-serif';ctx.fillText(`R = ${fmt(state.params.orbitRadius)} km`,18,24);
+			} else if(state.mode==='coaster') {
+				ctx.strokeStyle='#668b68';ctx.lineWidth=2;for(let x=-20;x<w;x+=34){ctx.beginPath();ctx.moveTo(x,h-38);ctx.lineTo(x+11,h-52);ctx.lineTo(x+22,h-38);ctx.stroke();}ctx.fillStyle='#425866';ctx.font='700 11px Trebuchet MS, sans-serif';ctx.fillText('TRACK HEIGHT y(t)',18,Math.max(ground-18,32));
+			}
+			ctx.restore();
+		}
+		const baseDrawScene=drawScene;
+		drawScene=function(m,current) { baseDrawScene(m,current); const rect=scene.getBoundingClientRect(),ctx=scene.getContext('2d'),w=Math.max(1,rect.width),h=Math.max(1,rect.height); if(!ctx)return; const pts=[];for(let i=0;i<=160;i++)pts.push(m.position(m.duration*i/160));let xb=bounds(pts.map(p=>p.x),.08),yb=state.mode==='car'||state.mode==='coaster'?[-4.2,4.2]:[-1.5,Math.max(...pts.map(p=>p.y))*1.15+1];if(state.mode==='orbit'){const limit=Math.max(...pts.map(p=>Math.max(Math.abs(p.x),Math.abs(p.y))))+2;xb=[-limit,limit];yb=[-limit,limit];}const b={x:xb,y:yb},point=mapPoint(current.x,current.y,b,w,h,35),path=pts.map(p=>mapPoint(p.x,p.y,b,w,h,35));drawSceneDetails(ctx,m,current,b,point,path,w,h); };
+		function render() { const m=model(), current=m.position(state.t), velocity=m.derivative(state.t); $('interval').textContent=`0 ≤ t ≤ ${fmt(m.duration)} s`; $('timeStart').textContent=`t = ${fmt(state.t)} s`; $('timeMax').textContent=`${fmt(m.duration)} s`; $('timeSlider').max=m.duration; $('timeSlider').value=state.t; $('timeValue').textContent=`${fmt(state.t)} s`; $('xValue').textContent=`${fmt(current.x)} m`; $('yValue').textContent=`${fmt(current.y)} m`; $('formulaX').innerHTML=`<em>x(t)</em> = ${m.labels[0].replace('x(t) = ','')}`; $('formulaY').innerHTML=`<em>y(t)</em> = ${m.labels[1].replace('y(t) = ','')}`; const velocityText=state.mode==='rocket'?`<strong>${state.t<=m.burn?'Powered burn':'Ballistic coast'}</strong> · velocity: <strong>v<sub>x</sub> = ${fmt(velocity.x)} m/s</strong>, <strong>v<sub>y</sub> = ${fmt(velocity.y)} m/s</strong>`:state.mode==='projectile'?`Current velocity: <strong>v<sub>x</sub> = ${fmt(velocity.x)} m/s</strong>, <strong>v<sub>y</sub> = ${fmt(velocity.y)} m/s</strong>`:state.mode==='orbit'?`Orbital velocity: <strong>dx/dt = ${fmt(velocity.x)}</strong>, <strong>dy/dt = ${fmt(velocity.y)}</strong>`:state.mode==='coaster'?`Track tangent: <strong>dx/dt = ${fmt(velocity.x)}</strong>, <strong>dy/dt = ${fmt(velocity.y)}</strong>`:`Current road tangent: <strong>dx/dt = ${fmt(velocity.x)}</strong>, <strong>dy/dt = ${fmt(velocity.y)}</strong>`;$('velocityText').innerHTML=velocityText; $('positionText').innerHTML=`At <strong>t = ${fmt(state.t)} s</strong>: &nbsp; x(t) = <strong>${fmt(current.x)}</strong>, y(t) = <strong>${fmt(current.y)}</strong> &nbsp; → &nbsp; position = <strong>(${fmt(current.x)}, ${fmt(current.y)})</strong>`; definitions[state.mode].controls.forEach(([id,,unit])=>$(id+'Out').textContent=`${fmt(state.params[id])} ${unit}`); const samples=Array.from({length:181},(_,i)=>m.position(m.duration*i/180)); graph(graphCanvases.x,'x',samples.map((p,i)=>({x:m.duration*i/180,y:p.x})),{x:state.t,y:current.x},['t','x']); graph(graphCanvases.y,'y',samples.map((p,i)=>({x:m.duration*i/180,y:p.y})),{x:state.t,y:current.y},['t','y']); graph(graphCanvases.path,'path',samples.map(p=>({x:p.x,y:p.y})),current,['x','y']); drawScene(m,current); }
+		const baseRender=render; render=function(){const m=model();state.t=clampTime(state.t,m);const current=m.position(state.t);if(finite(current.x)&&finite(current.y)){if(state.showTrail){const last=state.trail[state.trail.length-1];if(!last||Math.abs(last.t-state.t)>.01)state.trail.push({t:state.t,x:current.x,y:current.y});}baseRender();}};
+		function setMode(mode) { state.mode=definitions[mode]?mode:'car';state.t=0;state.trail=boundedTrail();state.playing=false;document.querySelectorAll('.tab').forEach(tab=>tab.classList.toggle('active',tab.dataset.mode===state.mode));$('sceneTitle').textContent=definitions[state.mode].title;$('sceneKicker').textContent=definitions[state.mode].kicker;$('microNote').textContent=definitions[state.mode].note;configureControls();render(); }
+		document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>setMode(tab.dataset.mode))); $('play').addEventListener('click',()=>{state.playing=!state.playing;$('play').textContent=state.playing?'❚❚ Pause':'▶ Play';}); $('reset').addEventListener('click',()=>{state.t=0;state.playing=false;$('play').textContent='▶ Play';render();}); $('step').addEventListener('click',()=>{state.t=Math.min(model().duration,state.t+.1);render();}); $('speed').addEventListener('change',e=>state.playbackRate=Number(e.target.value)); $('timeSlider').addEventListener('input',e=>{state.t=Number(e.target.value);state.playing=false;$('play').textContent='▶ Play';render();}); window.addEventListener('resize',render); window.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target.tagName!=='INPUT'){e.preventDefault();state.playing=!state.playing;$('play').textContent=state.playing?'❚❚ Pause':'▶ Play';}if(e.key.toLowerCase()==='r'){$('reset').click();}});
+		$('preset').addEventListener('change',e=>applyPreset(e.target.value)); $('showGuides').addEventListener('change',e=>{state.showGuides=e.target.checked;render();}); $('showTrail').addEventListener('change',e=>{state.showTrail=e.target.checked;if(!state.showTrail)state.trail=boundedTrail();render();}); $('showVelocity').addEventListener('change',e=>{state.showVelocity=e.target.checked;render();}); $('clearTrail').addEventListener('click',()=>{state.trail=boundedTrail();render();});
+		graphCanvases.path.addEventListener('pointermove',e=>{const info=graphCanvases.path.__graphInfo;if(!info)return;const rect=graphCanvases.path.getBoundingClientRect(),px=e.clientX-rect.left,py=e.clientY-rect.top;if(px<info.pad||px>info.w-info.pad||py<info.pad||py>info.h-info.pad){state.hover=null;render();return;}const x=info.b.x[0]+(px-info.pad)/(info.w-2*info.pad)*(info.b.x[1]-info.b.x[0]),y=info.b.y[0]+(info.h-info.pad-py)/(info.h-2*info.pad)*(info.b.y[1]-info.b.y[0]),m=model(),t=clampTime((px-info.pad)/(info.w-2*info.pad)*m.duration,m),p=m.position(t);state.hover={t,x:p.x,y:p.y};render();}); graphCanvases.path.addEventListener('pointerleave',()=>{state.hover=null;render();});
+		let last=performance.now(); function animate(now){const elapsed=(now-last)/1000;last=now;if(state.playing){state.t+=elapsed*state.playbackRate;if(state.t>=model().duration){state.t=model().duration;state.playing=false;$('play').textContent='▶ Play';}render();}requestAnimationFrame(animate);} configureControls();render();requestAnimationFrame(animate);
+	</script>
+</body>
+</html>
